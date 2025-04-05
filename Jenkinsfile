@@ -2,19 +2,17 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'TerraformAction', choices: 'Deploy\nDestroy', description: 'Selecciona la acción a ejecutar')
+        choice(name: 'TerraformAction', choices: ['Deploy', 'Destroy'], description: 'Selecciona la acción a ejecutar')
     }
 
     environment {
-        AWS_ACCESS_KEY_ID = credentials('aws-credentials')  
-        AWS_SECRET_ACCESS_KEY = credentials('aws-credentials')
+        AWS_REGION = 'us-east-1'
     }
 
     stages {
         stage('Checkout Code') {
             steps {
                 script {
-                    // Clonar el código de Terraform desde GitHub
                     checkout([
                         $class: 'GitSCM',
                         branches: [[name: '*/main']],
@@ -24,44 +22,37 @@ pipeline {
             }
         }
 
-        stage('Terraform Init and Plan') {
-            when {
-                expression {
-                    return params.TerraformAction == 'Deploy'
+        stage('Terraform Init & Validate') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                    sh 'terraform init'
+                    sh 'terraform validate'
                 }
             }
+        }
+
+        stage('Terraform Plan') {
+            when { expression { params.TerraformAction == 'Deploy' } }
             steps {
-                script {
-                    // Inicializar Terraform y generar el plan
-                    sh 'terraform init'
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     sh 'terraform plan -out=tfplan'
                 }
             }
         }
 
         stage('Terraform Apply') {
-            when {
-                expression {
-                    return params.TerraformAction == 'Deploy'
-                }
-            }
+            when { expression { params.TerraformAction == 'Deploy' } }
             steps {
-                script {
-                    // Aplicar la infraestructura con Terraform
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     sh 'terraform apply -auto-approve tfplan'
                 }
             }
         }
 
         stage('Terraform Destroy') {
-            when {
-                expression {
-                    return params.TerraformAction == 'Destroy'
-                }
-            }
+            when { expression { params.TerraformAction == 'Destroy' } }
             steps {
-                script {
-                    // Eliminar la infraestructura con Terraform
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     sh 'terraform destroy -auto-approve'
                 }
             }
@@ -70,14 +61,10 @@ pipeline {
 
     post {
         success {
-            script {
-                echo "✅ ${params.TerraformAction} completado con éxito"
-            }
+            echo "✅ ${params.TerraformAction} completado con éxito"
         }
         failure {
-            script {
-                echo "❌ ${params.TerraformAction} falló"
-            }
+            echo "❌ ${params.TerraformAction} falló"
         }
     }
 }
