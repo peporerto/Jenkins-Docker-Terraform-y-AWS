@@ -1,6 +1,0 @@
-workflow-aggregator
-git
-blueocean
-pipeline-aws
-credentials-binding
-terraform

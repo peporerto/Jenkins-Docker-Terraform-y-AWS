@@ -1,59 +1,41 @@
 pipeline {
     agent any
 
-    parameters {
-        choice(name: 'TerraformAction', choices: ['Deploy', 'Destroy'], description: 'Selecciona la acción a ejecutar')
-    }
-
     environment {
-        AWS_REGION = 'us-east-1'
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_DEFAULT_REGION = 'us-east-1'
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Clonar repo') {
+            steps {
+                sshagent(['github-ssh']) {
+                    sh 'git clone git@github.com:peporerto/Jenkins-Docker-Terraform-y-AWS.git'
+                }
+            }
+        }
+
+        stage('Preparar Terraform') {
             steps {
                 script {
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']],
-                        userRemoteConfigs: [[url: 'https://github.com/peporerto/Jenkins-Docker-Terraform-y-AWS.git']]
-                    ])
+                    sh 'docker exec terraform-container terraform init'
                 }
             }
         }
 
-        stage('Terraform Init & Validate') {
+        stage('Ejecutar Terraform Plan') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
-                    sh 'terraform init'
-                    sh 'terraform validate'
+                script {
+                    sh 'docker exec terraform-container terraform plan'
                 }
             }
         }
 
-        stage('Terraform Plan') {
-            when { expression { params.TerraformAction == 'Deploy' } }
+        stage('Aplicar Terraform') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
-                    sh 'terraform plan -out=tfplan'
-                }
-            }
-        }
-
-        stage('Terraform Apply') {
-            when { expression { params.TerraformAction == 'Deploy' } }
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
-                    sh 'terraform apply -auto-approve tfplan'
-                }
-            }
-        }
-
-        stage('Terraform Destroy') {
-            when { expression { params.TerraformAction == 'Destroy' } }
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
-                    sh 'terraform destroy -auto-approve'
+                script {
+                    sh 'docker exec terraform-container terraform apply -auto-approve'
                 }
             }
         }
@@ -61,10 +43,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ ${params.TerraformAction} completado con éxito"
+            echo 'Terraform ha sido ejecutado correctamente'
         }
         failure {
-            echo "❌ ${params.TerraformAction} falló"
+            echo 'Hubo un error al ejecutar Terraform'
         }
     }
 }
