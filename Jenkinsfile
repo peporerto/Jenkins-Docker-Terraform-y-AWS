@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Clonar repo') {
             steps {
-                sshagent(['github-ssh']) {
+                sshagent(['github-jenkins-key']) {
                     sh 'git clone git@github.com:peporerto/Jenkins-Docker-Terraform-y-AWS.git'
                 }
             }
