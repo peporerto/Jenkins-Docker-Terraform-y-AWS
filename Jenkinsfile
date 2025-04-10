@@ -8,6 +8,19 @@ pipeline {
     }
 
     stages {
+        stage('Preparar Workspace') {
+            steps {
+                // Limpia el workspace
+                deleteDir()
+            }
+        }
+
+        stage('Checkout SCM') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Clonar repo') {
             steps {
                 sshagent(['github-jenkins-key']) {
