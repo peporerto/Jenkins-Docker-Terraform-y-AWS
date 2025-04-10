@@ -19,7 +19,7 @@ pipeline {
         stage('Preparar Terraform') {
             steps {
                 script {
-                    sh 'docker exec terraform-container terraform init'
+                    sh 'docker exec pensive_maxwell terraform init'
                 }
             }
         }
@@ -27,7 +27,7 @@ pipeline {
         stage('Ejecutar Terraform Plan') {
             steps {
                 script {
-                    sh 'docker exec terraform-container terraform plan'
+                    sh 'docker exec pensive_maxwell terraform plan'
                 }
             }
         }
@@ -35,7 +35,7 @@ pipeline {
         stage('Aplicar Terraform') {
             steps {
                 script {
-                    sh 'docker exec terraform-container terraform apply -auto-approve'
+                    sh 'docker exec pensive_maxwell terraform apply -auto-approve'
                 }
             }
         }
