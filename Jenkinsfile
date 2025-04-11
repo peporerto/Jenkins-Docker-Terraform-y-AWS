@@ -1,75 +1,56 @@
 pipeline {
     agent any
 
+    
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
-        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-        AWS_DEFAULT_REGION = 'us-east-1'
+        AWS_DEFAULT_REGION    = 'us-east-1'
     }
 
     stages {
-        stage('Checkout SCM') {
+        stage('Limpiar Workspace') {
             steps {
-                checkout scm
+                deleteDir() // Limpia TODO para empezar desde cero
             }
         }
 
-    stage('Clonar repo') {
-    steps {
-        script {
-            sh 'rm -rf Jenkins-Docker-Terraform-y-AWS'  // Elimina el directorio existente
+        stage('Clonar repo desde GitHub') {
+            steps {
+                sshagent(['github-jenkins-key']) {
+                    sh 'git clone git@github.com:peporerto/Jenkins-Docker-Terraform-y-AWS.git'
+                }
+            }
         }
-        sshagent(['134a2345-7c8f-44e7-a9d5-6ce69ca4c6bc']) {
-            sh 'git clone git@github.com:peporerto/Jenkins-Docker-Terraform-y-AWS.git'
-        }
-    }
-}
-
 
         stage('Inicializar Terraform') {
             steps {
-                script {
-                    try {
-                        echo "🔧 Iniciando terraform init..."
-                        sh 'terraform init -input=false -no-color'
-                        echo "✅ Terraform init terminado"
-                    } catch (Exception e) {
-                        echo "❌ Error en terraform init: ${e.getMessage()}"
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
+                dir('Jenkins-Docker-Terraform-y-AWS') {
+                    sh 'echo "🔧 Iniciando terraform init..."'
+                    sh 'terraform init -input=false -no-color'
+                    sh 'echo "✅ Terraform init terminado"'
                 }
             }
         }
 
         stage('Terraform Plan') {
             steps {
-                script {
-                    try {
-                        echo "📌 Ejecutando terraform plan..."
-                        sh 'terraform plan -input=false -no-color'
-                        echo "✅ Terraform plan terminado"
-                    } catch (Exception e) {
-                        echo "❌ Error en terraform plan: ${e.getMessage()}"
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
+                dir('Jenkins-Docker-Terraform-y-AWS') {
+                    sh 'echo "📌 Ejecutando terraform plan..."'
+                    sh 'terraform plan -input=false -no-color'
+                    sh 'echo "✅ Terraform plan terminado"'
                 }
             }
         }
 
         stage('Terraform Apply') {
             steps {
-                script {
-                    try {
-                        echo "🚀 Ejecutando terraform apply..."
-                        sh 'terraform apply -auto-approve -input=false -no-color'
-                        echo "✅ Terraform apply terminado"
-                    } catch (Exception e) {
-                        echo "❌ Error en terraform apply: ${e.getMessage()}"
-                        currentBuild.result = 'FAILURE'
-                        throw e
-                    }
+                dir('Jenkins-Docker-Terraform-y-AWS') {
+                    sh 'terraform apply -auto-approve -input=false -no-color'
                 }
             }
         }
@@ -77,10 +58,10 @@ pipeline {
 
     post {
         success {
-            echo 'Terraform ha sido ejecutado correctamente'
+            echo '✅ Terraform se ejecutó correctamente'
         }
         failure {
-            echo 'Hubo un error al ejecutar Terraform'
+            echo '❌ Hubo un error al ejecutar Terraform'
         }
     }
 }
