@@ -10,7 +10,6 @@ pipeline {
     stages {
         stage('Preparar Workspace') {
             steps {
-                // Limpia el workspace
                 deleteDir()
             }
         }
@@ -29,26 +28,26 @@ pipeline {
             }
         }
 
-        stage('Preparar Terraform') {
+        stage('Inicializar Terraform') {
             steps {
-                script {
-                    sh 'docker exec pensive_maxwell terraform init'
+                dir('Jenkins-Docker-Terraform-y-AWS') {
+                    sh 'terraform init'
                 }
             }
         }
 
-        stage('Ejecutar Terraform Plan') {
+        stage('Terraform Plan') {
             steps {
-                script {
-                    sh 'docker exec pensive_maxwell terraform plan'
+                dir('Jenkins-Docker-Terraform-y-AWS') {
+                    sh 'terraform plan'
                 }
             }
         }
 
-        stage('Aplicar Terraform') {
+        stage('Terraform Apply') {
             steps {
-                script {
-                    sh 'docker exec pensive_maxwell terraform apply -auto-approve'
+                dir('Jenkins-Docker-Terraform-y-AWS') {
+                    sh 'terraform apply -auto-approve'
                 }
             }
         }
