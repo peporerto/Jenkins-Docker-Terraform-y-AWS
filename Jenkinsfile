@@ -8,12 +8,6 @@ pipeline {
     }
 
     stages {
-        stage('Preparar Workspace') {
-            steps {
-                deleteDir()
-            }
-        }
-
         stage('Checkout SCM') {
             steps {
                 checkout scm
@@ -30,24 +24,30 @@ pipeline {
 
         stage('Inicializar Terraform') {
             steps {
-                dir('Jenkins-Docker-Terraform-y-AWS') {
-                    sh 'terraform init'
+                script {
+                    echo "🔧 Iniciando terraform init..."
+                    sh 'terraform init -input=false -no-color'
+                    echo "✅ Terraform init terminado"
                 }
             }
         }
 
         stage('Terraform Plan') {
             steps {
-                dir('Jenkins-Docker-Terraform-y-AWS') {
-                    sh 'terraform plan'
+                script {
+                    echo "📌 Ejecutando terraform plan..."
+                    sh 'terraform plan -input=false -no-color'
+                    echo "✅ Terraform plan terminado"
                 }
             }
         }
 
         stage('Terraform Apply') {
             steps {
-                dir('Jenkins-Docker-Terraform-y-AWS') {
-                    sh 'terraform apply -auto-approve'
+                script {
+                    echo "🚀 Ejecutando terraform apply..."
+                    sh 'terraform apply -auto-approve -input=false -no-color'
+                    echo "✅ Terraform apply terminado"
                 }
             }
         }
