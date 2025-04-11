@@ -25,9 +25,15 @@ pipeline {
         stage('Inicializar Terraform') {
             steps {
                 script {
-                    echo "🔧 Iniciando terraform init..."
-                    sh 'terraform init -input=false -no-color'
-                    echo "✅ Terraform init terminado"
+                    try {
+                        echo "🔧 Iniciando terraform init..."
+                        sh 'terraform init -input=false -no-color'
+                        echo "✅ Terraform init terminado"
+                    } catch (Exception e) {
+                        echo "❌ Error en terraform init: ${e.getMessage()}"
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
                 }
             }
         }
@@ -35,9 +41,15 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 script {
-                    echo "📌 Ejecutando terraform plan..."
-                    sh 'terraform plan -input=false -no-color'
-                    echo "✅ Terraform plan terminado"
+                    try {
+                        echo "📌 Ejecutando terraform plan..."
+                        sh 'terraform plan -input=false -no-color'
+                        echo "✅ Terraform plan terminado"
+                    } catch (Exception e) {
+                        echo "❌ Error en terraform plan: ${e.getMessage()}"
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
                 }
             }
         }
@@ -45,9 +57,15 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 script {
-                    echo "🚀 Ejecutando terraform apply..."
-                    sh 'terraform apply -auto-approve -input=false -no-color'
-                    echo "✅ Terraform apply terminado"
+                    try {
+                        echo "🚀 Ejecutando terraform apply..."
+                        sh 'terraform apply -auto-approve -input=false -no-color'
+                        echo "✅ Terraform apply terminado"
+                    } catch (Exception e) {
+                        echo "❌ Error en terraform apply: ${e.getMessage()}"
+                        currentBuild.result = 'FAILURE'
+                        throw e
+                    }
                 }
             }
         }
